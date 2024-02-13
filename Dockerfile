@@ -11,4 +11,4 @@ COPY . /app
 RUN pip install requests
 
 # Run main.py when the container launches
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
