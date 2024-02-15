@@ -1,7 +1,7 @@
 {
     "disks":[
         {
-            "name": "data",
+            "name": "",
             "mountTo": "/app/html_files"
         }
     ]
