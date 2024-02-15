@@ -3,6 +3,7 @@ import json
 import requests
 import time
 
+
 def fetch_website_content(url):
     try:
         response = requests.get(url)
