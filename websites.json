@@ -1,10 +1,6 @@
 {
     "websites": [
         {
-            "name": "NodeJS",
-            "url": "https://www.nodejs.org"
-        },
-        {
             "name": "Python",
             "url": "https://www.python.org"
         },
