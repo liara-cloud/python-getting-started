@@ -1,45 +1,41 @@
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
 
-# # uncomment in development mode: 
-# from dotenv import load_dotenv # pip install python-dotenv
-
+# # uncomment to use in development mode and .env file
+# from dotenv import load_dotenv
 # # Load environment variables from .env file
 # load_dotenv()
 
+# Retrieve object storage configuration from environment variables
+LIARA_ENDPOINT = os.getenv("LIARA_ENDPOINT")
+LIARA_BUCKET_NAME = os.getenv("LIARA_BUCKET_NAME")
+LIARA_ACCESS_KEY = os.getenv("LIARA_ACCESS_KEY")
+LIARA_SECRET_KEY = os.getenv("LIARA_SECRET_KEY")
 
-# Read email configuration from environment variables
-MAIL_HOST = os.getenv('MAIL_HOST')
-MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
-MAIL_USER = os.getenv('MAIL_USER')
-MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-MAIL_FROM_ADDRESS = os.getenv('MAIL_FROM_ADDRESS')
+# Initialize S3 client
+s3_client = boto3.client(
+    "s3",
+    endpoint_url=LIARA_ENDPOINT,
+    aws_access_key_id=LIARA_ACCESS_KEY,
+    aws_secret_access_key=LIARA_SECRET_KEY
+)
 
-def send_email(to_address, subject, body):
-    # Create the email message
-    msg = MIMEMultipart()
-    msg['From'] = MAIL_FROM_ADDRESS
-    msg['To'] = to_address
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+def upload_file(file_path, object_name=None):
+    """Uploads a file to the specified bucket on Liara object storage."""
+    if object_name is None:
+        object_name = os.path.basename(file_path)
 
     try:
-        # Connect to the SMTP server
-        server = smtplib.SMTP(MAIL_HOST, MAIL_PORT)
-        server.starttls()  # Secure the connection with TLS
-        server.login(MAIL_USER, MAIL_PASSWORD)  # Login to the SMTP server
-        server.send_message(msg)  # Send the email
-        print("Email sent successfully")
-    except Exception as e:
-        print("Failed to send email:", e)
-    finally:
-        server.quit()  # Close the connection to the server
+        s3_client.upload_file(file_path, LIARA_BUCKET_NAME, object_name)
+        print(f"File '{file_path}' uploaded successfully as '{object_name}'")
+    except FileNotFoundError:
+        print("The specified file was not found.")
+    except NoCredentialsError:
+        print("Credentials not available.")
+    except ClientError as e:
+        print("Failed to upload file:", e)
 
-# Send an email to the specified recipient
-to_address = 'recipient@example.com'
-subject = 'Test Email'
-body = 'This is a test email sent from Python using environment variables.'
-
-send_email(to_address, subject, body)
+# Usage example
+file_path = "file.txt"
+upload_file(file_path)
