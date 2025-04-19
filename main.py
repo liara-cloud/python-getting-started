@@ -1,41 +1,47 @@
 import os
-import boto3
-from botocore.exceptions import NoCredentialsError, ClientError
+import streamlit as st
+from utils import get_s3_client
+from list_files import list_files_section
+from upload_file import upload_file_section
 
-# # uncomment to use in development mode and .env file
-# from dotenv import load_dotenv
-# # Load environment variables from .env file
-# load_dotenv()
-
-# Retrieve object storage configuration from environment variables
-LIARA_ENDPOINT = os.getenv("LIARA_ENDPOINT")
-LIARA_BUCKET_NAME = os.getenv("LIARA_BUCKET_NAME")
+# Load environment variables
+LIARA_ENDPOINT_URL = os.getenv("LIARA_ENDPOINT_URL")
 LIARA_ACCESS_KEY = os.getenv("LIARA_ACCESS_KEY")
 LIARA_SECRET_KEY = os.getenv("LIARA_SECRET_KEY")
+BUCKET_NAME = os.getenv("BUCKET_NAME")
 
 # Initialize S3 client
-s3_client = boto3.client(
-    "s3",
-    endpoint_url=LIARA_ENDPOINT,
-    aws_access_key_id=LIARA_ACCESS_KEY,
-    aws_secret_access_key=LIARA_SECRET_KEY
-)
+s3_client = get_s3_client()
 
-def upload_file(file_path, object_name=None):
-    """Uploads a file to the specified bucket on Liara object storage."""
-    if object_name is None:
-        object_name = os.path.basename(file_path)
+# Main Streamlit app
+def main():
+    st.set_page_config(page_title="Liara S3 File Manager", layout="wide")
+    st.title("Liara S3 File Manager")
 
-    try:
-        s3_client.upload_file(file_path, LIARA_BUCKET_NAME, object_name)
-        print(f"File '{file_path}' uploaded successfully as '{object_name}'")
-    except FileNotFoundError:
-        print("The specified file was not found.")
-    except NoCredentialsError:
-        print("Credentials not available.")
-    except ClientError as e:
-        print("Failed to upload file:", e)
+    # Sidebar navigation
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio("Go to", ["Home", "List Buckets", "List Files", "Upload File"])
 
-# Usage example
-file_path = "file.txt"
-upload_file(file_path)
+    if page == "Home":
+        st.write("Welcome to the Liara S3 File Manager!")
+        st.write("Use the sidebar to navigate to different functionalities.")
+
+    elif page == "List Buckets":
+        from utils import list_buckets
+        st.header("List Buckets")
+        buckets = list_buckets(s3_client)
+        if buckets:
+            st.write("Available Buckets:")
+            for bucket in buckets:
+                st.write(bucket)
+        else:
+            st.write("No buckets found.")
+
+    elif page == "List Files":
+        list_files_section(s3_client, BUCKET_NAME)
+
+    elif page == "Upload File":
+        upload_file_section(s3_client, BUCKET_NAME)
+
+if __name__ == "__main__":
+    main()
