@@ -1,11 +1,6 @@
-# ===============================
-# Python-specific ignores
-# ===============================
-# Byte-compiled Python files
 __pycache__/
 *.py[cod]
 
-# Distribution / packaging
 .Python
 env/
 venv/
@@ -14,51 +9,27 @@ env.bak/
 venv.bak/
 .venv 
 
-# Pipenv
 Pipfile
 Pipfile.lock
 
-# PyInstaller
 *.spec
 
-# IDE/editor-specific files
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# Logs and databases
 *.log
 *.sqlite3
 
-# ===============================
-# Streamlit-specific ignores
-# ===============================
-# Streamlit cache directory
 .streamlit/
 
-# ===============================
-# Environment and secrets
-# ===============================
-# Ignore environment variable files
 .env
 .env.local
 .env.*.local
 
-# ===============================
-# OS-specific ignores
-# ===============================
-# macOS
 .DS_Store
 
-# Windows
 Thumbs.db
 
-# Linux
 *~
-
-# ===============================
-# Other ignores
-# ===============================
-# Ignore downloaded files
-downloads/

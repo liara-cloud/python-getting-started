@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 File Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: white;
+            padding: 20px;
+            color: #000;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            border-bottom: 1px solid #000;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: normal;
+        }
+
+        .content {
+            padding: 0;
+        }
+
+        .upload-section {
+            border: 1px solid #000;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-section h3 {
+            font-size: 16px;
+            font-weight: normal;
+            margin-bottom: 15px;
+        }
+
+        .upload-section input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        .upload-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #000;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .upload-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .files-section {
+            margin-top: 30px;
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .files-header h2 {
+            font-size: 18px;
+            font-weight: normal;
+        }
+
+        .refresh-btn {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #000;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .refresh-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .files-list {
+            border: 1px solid #000;
+        }
+
+        .file-item {
+            border-bottom: 1px solid #000;
+            padding: 15px;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .file-info {
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: 1px solid #000;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border: 1px solid #000;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .url-display {
+            padding: 10px;
+            border: 1px solid #000;
+            word-break: break-all;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            padding: 8px;
+            background: white;
+            border: 1px solid #000;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .message {
+            padding: 10px;
+            border: 1px solid #000;
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid #000;
+        }
+
+        #selectedFile {
+            margin: 10px 0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>S3 File Manager</h1>
+        </div>
+
+        <div class="content">
+            <div id="message-container"></div>
+
+            <div class="upload-section">
+                <h3>Upload File</h3>
+                <input type="file" id="fileInput" />
+                <div id="selectedFile"></div>
+                <button class="upload-btn" id="uploadBtn" disabled>Upload</button>
+            </div>
+
+            <div class="files-section">
+                <div class="files-header">
+                    <h2>Files</h2>
+                    <button class="refresh-btn" onclick="loadFiles()">Refresh</button>
+                </div>
+                <div id="filesContainer">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="urlModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">URL</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="url-display" id="urlDisplay"></div>
+            <button class="copy-btn" onclick="copyUrl()">Copy</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let currentUrl = '';
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('selectedFile').textContent = selectedFile.name;
+                document.getElementById('uploadBtn').disabled = false;
+            }
+        });
+
+        document.getElementById('uploadBtn').addEventListener('click', async function() {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                showMessage('Uploading...');
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message);
+                    document.getElementById('fileInput').value = '';
+                    document.getElementById('selectedFile').textContent = '';
+                    document.getElementById('uploadBtn').disabled = true;
+                    selectedFile = null;
+                    loadFiles();
+                } else {
+                    showMessage(data.detail || 'Upload failed');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message);
+            }
+        });
+
+        async function loadFiles() {
+            const container = document.getElementById('filesContainer');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const response = await fetch('/api/files');
+                const data = await response.json();
+
+                if (data.files.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No files</div>';
+                    return;
+                }
+
+                const filesList = document.createElement('div');
+                filesList.className = 'files-list';
+
+                data.files.forEach(file => {
+                    const fileItem = createFileItem(file);
+                    filesList.appendChild(fileItem);
+                });
+
+                container.innerHTML = '';
+                container.appendChild(filesList);
+            } catch (error) {
+                container.innerHTML = '<div class="message">Error: ' + error.message + '</div>';
+            }
+        }
+
+        function createFileItem(file) {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+
+            const size = formatFileSize(file.size);
+            const date = new Date(file.last_modified).toLocaleString();
+
+            item.innerHTML = `
+                <div class="file-name">${file.key}</div>
+                <div class="file-info">Size: ${size} | Modified: ${date}</div>
+                <div class="file-actions">
+                    <button class="btn" onclick="downloadFile('${file.key}')">Download</button>
+                    <button class="btn" onclick="getTempLink('${file.key}')">Temp Link</button>
+                    <button class="btn" onclick="getPermLink('${file.key}')">Perm Link</button>
+                    <button class="btn" onclick="deleteFile('${file.key}')">Delete</button>
+                </div>
+            `;
+
+            return item;
+        }
+
+        async function downloadFile(key) {
+            window.location.href = `/api/download/${key}`;
+        }
+
+        async function deleteFile(key) {
+            if (!confirm('Delete "' + key + '"?')) return;
+
+            try {
+                const response = await fetch(`/api/delete/${key}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message);
+                    loadFiles();
+                } else {
+                    showMessage(data.detail || 'Delete failed');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message);
+            }
+        }
+
+        async function getTempLink(key) {
+            try {
+                const response = await fetch(`/api/temp-link/${key}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUrl = data.url;
+                    document.getElementById('modalTitle').textContent = 'Temporary Link';
+                    document.getElementById('urlDisplay').textContent = data.url;
+                    document.getElementById('urlModal').classList.add('active');
+                } else {
+                    showMessage(data.detail || 'Failed');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message);
+            }
+        }
+
+        async function getPermLink(key) {
+            try {
+                const response = await fetch(`/api/perm-link/${key}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUrl = data.url;
+                    document.getElementById('modalTitle').textContent = 'Permanent Link';
+                    document.getElementById('urlDisplay').textContent = data.url;
+                    document.getElementById('urlModal').classList.add('active');
+                } else {
+                    showMessage(data.detail || 'Failed');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('urlModal').classList.remove('active');
+        }
+
+        function copyUrl() {
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                showMessage('Copied');
+                closeModal();
+            }).catch(err => {
+                showMessage('Failed to copy');
+            });
+        }
+
+        function showMessage(message) {
+            const container = document.getElementById('message-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        document.getElementById('urlModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        loadFiles();
+    </script>
+</body>
+</html>
